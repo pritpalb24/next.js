@@ -1,0 +1,25 @@
+{
+  "total": {
+    "lines": { "total": 1294, "covered": 1159, "skipped": 0, "pct": 89.56 },
+    "statements": {
+      "total": 1294,
+      "covered": 1159,
+      "skipped": 0,
+      "pct": 89.56
+    },
+    "functions": { "total": 44, "covered": 34, "skipped": 0, "pct": 77.27 },
+    "branches": { "total": 305, "covered": 265, "skipped": 0, "pct": 86.88 },
+    "branchesTrue": { "total": 0, "covered": 0, "skipped": 0, "pct": "Unknown" }
+  },
+  "C:\\Users\\Pritpal\\Documents\\Code\\303\\next.js\\packages\\next\\src\\server\\image-optimizer.ts": {
+    "lines": { "total": 1294, "covered": 1159, "skipped": 0, "pct": 89.56 },
+    "functions": { "total": 44, "covered": 34, "skipped": 0, "pct": 77.27 },
+    "statements": {
+      "total": 1294,
+      "covered": 1159,
+      "skipped": 0,
+      "pct": 89.56
+    },
+    "branches": { "total": 305, "covered": 265, "skipped": 0, "pct": 86.88 }
+  }
+}
