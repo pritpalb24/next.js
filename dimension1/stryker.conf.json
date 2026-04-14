@@ -1,0 +1,31 @@
+{
+  "$schema": "../node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "_comment": "Dimension 1: Mutation Adequacy Evaluation — targets image-optimizer.ts and create-client-router-filter.ts",
+  "packageManager": "pnpm",
+  "plugins": ["@stryker-mutator/jest-runner"],
+  "testRunner": "jest",
+  "jest": {
+    "projectType": "custom",
+    "configFile": "dimension1/jest.stryker.config.js",
+    "enableFindRelatedTests": false
+  },
+  "coverageAnalysis": "perTest",
+  "inPlace": true,
+  "mutate": [
+    "packages/next/src/lib/create-client-router-filter.ts",
+    "packages/next/src/server/image-optimizer.ts"
+  ],
+  "reporters": ["clear-text", "html", "json", "progress"],
+  "htmlReporter": {
+    "fileName": "dimension1/reports/after/mutation.html"
+  },
+  "jsonReporter": {
+    "fileName": "dimension1/reports/after/mutation.json"
+  },
+  "timeoutMS": 70000,
+  "timeoutFactor": 2,
+  "concurrency": 4,
+  "tempDirName": ".stryker-tmp",
+  "disableTypeChecks": "packages/next/src/**/*.{js,ts,jsx,tsx}",
+  "ignoreStatic": true
+}
