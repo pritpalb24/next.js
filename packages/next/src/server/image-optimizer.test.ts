@@ -43,15 +43,20 @@ jest.mock('next/dist/compiled/is-animated', () => isAnimated)
 jest.mock('sharp', () => sharp)
 
 import {
+  extractEtag,
   detectContentType,
   fetchExternalImage,
   fetchInternalImage,
+  getHash,
+  getImageEtag,
+  getImageSize,
   getMaxAge,
   getPreviouslyCachedImageOrNull,
   ImageError,
   ImageOptimizerCache,
   imageOptimizer,
   optimizeImage,
+  sendResponse,
 } from './image-optimizer'
 import { promises as fs } from 'fs'
 import os from 'os'
@@ -118,6 +123,31 @@ function createHeaders(values: Record<string, string | null | undefined>) {
 async function* createBody(chunks: Array<string | Buffer>) {
   for (const chunk of chunks) {
     yield typeof chunk === 'string' ? Buffer.from(chunk) : chunk
+  }
+}
+
+function createMockServerResponse() {
+  const headers = new Map<string, any>()
+  let endedWith: any = undefined
+  const res = {
+    statusCode: 200,
+    setHeader(name: string, value: any) {
+      headers.set(name.toLowerCase(), value)
+      return this
+    },
+    getHeader(name: string) {
+      return headers.get(name.toLowerCase())
+    },
+    end(value?: any) {
+      endedWith = value
+      return this
+    },
+  } as any
+
+  return {
+    res,
+    headers,
+    getEndedWith: () => endedWith,
   }
 }
 
@@ -220,6 +250,32 @@ describe('image-optimizer helpers', () => {
 
     expect(new ImageError(200, 'nope').statusCode).toBe(500)
     expect(new ImageError(404, 'nope').statusCode).toBe(404)
+  })
+
+  it('covers hash and etag helper behavior', () => {
+    const hash = getHash(['a', 1, Buffer.from('b')])
+    expect(typeof hash).toBe('string')
+    expect(hash.length).toBeGreaterThan(10)
+
+    const image = Buffer.from('image-data')
+    expect(getImageEtag(image)).toBe(getHash([image]))
+
+    expect(extractEtag('W/"upstream"', image)).toBe(
+      Buffer.from('W/"upstream"').toString('base64url')
+    )
+    expect(extractEtag(null, image)).toBe(getImageEtag(image))
+  })
+
+  it('returns image dimensions for a valid png', async () => {
+    const oneByOnePng = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO2l0ZYAAAAASUVORK5CYII=',
+      'base64'
+    )
+
+    await expect(getImageSize(oneByOnePng)).resolves.toEqual({
+      width: 1,
+      height: 1,
+    })
   })
 
   it('throws a helpful error when sharp is unavailable', () => {
@@ -605,6 +661,27 @@ describe('fetchInternalImage', () => {
       message: '"url" parameter is valid but upstream response is invalid',
     })
   })
+
+  it('returns 500 image error when internal handler never sets statusCode', async () => {
+    const req = { method: undefined, socket: {} } as any
+    const res = {} as any
+
+    await expect(
+      fetchInternalImage(
+        '/_next/static/media/no-status.png',
+        req,
+        res,
+        async (_newReq, newRes) => {
+          newRes.statusCode = 0
+          newRes.write('abc')
+          newRes.end()
+        }
+      )
+    ).rejects.toMatchObject({
+      statusCode: 500,
+      message: '"url" parameter is valid but upstream response is invalid',
+    })
+  })
 })
 
 describe('ImageOptimizerCache custom cache handler', () => {
@@ -932,6 +1009,111 @@ describe('imageOptimizer', () => {
         height: 16,
       })
     ).resolves.toBeInstanceOf(Buffer)
+  })
+
+  it('creates blur svg placeholder in dev mode for blur boundary request', async () => {
+    const oneByOnePng = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO2l0ZYAAAAASUVORK5CYII=',
+      'base64'
+    )
+    mockTransformer.toBuffer.mockResolvedValueOnce(oneByOnePng)
+
+    const result = await imageOptimizer(
+      {
+        buffer: oneByOnePng,
+        contentType: 'image/png',
+        cacheControl: 'public, max-age=120',
+        etag: 'upstream-etag',
+      },
+      {
+        href: '/_next/static/media/blur.png',
+        width: 8,
+        quality: 70,
+        mimeType: 'image/png',
+      },
+      createNextConfig(),
+      { isDev: true }
+    )
+
+    expect(result.contentType).toBe('image/svg+xml')
+    expect(result.buffer.toString()).toContain('<svg')
+  })
+})
+
+describe('sendResponse', () => {
+  it('sends body for GET requests and applies image headers', () => {
+    const req = { method: 'GET', headers: {} } as any
+    const { res, headers, getEndedWith } = createMockServerResponse()
+
+    sendResponse(
+      req,
+      res,
+      '/_next/static/media/pic.png',
+      'png',
+      Buffer.from('hello'),
+      'etag-123',
+      false,
+      'MISS',
+      createNextConfig().images,
+      60,
+      false
+    )
+
+    expect(headers.get('content-type')).toBe('image/png')
+    expect(headers.get('x-nextjs-cache')).toBe('MISS')
+    expect(headers.get('content-length')).toBe(5)
+    expect(getEndedWith()).toEqual(Buffer.from('hello'))
+  })
+
+  it('ends without body for HEAD requests and supports weak content typing fallback', () => {
+    const req = { method: 'HEAD', headers: {} } as any
+    const { res, headers, getEndedWith } = createMockServerResponse()
+
+    sendResponse(
+      req,
+      res,
+      '/foo/noext',
+      'unknown-extension',
+      Buffer.from('ignored'),
+      'etag-456',
+      true,
+      'HIT',
+      createNextConfig().images,
+      600,
+      false
+    )
+
+    expect(headers.get('cache-control')).toContain('immutable')
+    expect(headers.get('content-type')).toBe('application/octet-stream')
+    expect(getEndedWith()).toBeUndefined()
+  })
+
+  it('returns early with 304 when etag is fresh', () => {
+    const req = {
+      method: 'GET',
+      headers: {
+        'if-none-match': 'etag-fresh',
+      },
+    } as any
+    const { res, headers, getEndedWith } = createMockServerResponse()
+
+    sendResponse(
+      req,
+      res,
+      '/_next/static/media/fresh.png',
+      'png',
+      Buffer.from('body'),
+      'etag-fresh',
+      false,
+      'STALE',
+      createNextConfig().images,
+      60,
+      false
+    )
+
+    expect(res.statusCode).toBe(304)
+    expect(headers.get('content-length')).toBeUndefined()
+    expect(getEndedWith()).toBeUndefined()
   })
 })
 

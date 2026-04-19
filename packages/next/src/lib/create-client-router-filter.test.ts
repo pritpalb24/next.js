@@ -58,4 +58,17 @@ describe('createClientRouterFilter', () => {
     expect(staticFilter.contains('/redirect')).toBe(false)
     expect(dynamicFilter.contains('/docs')).toBe(true)
   })
+
+  it('normalizes trailing slash for static redirect sources', () => {
+    const filters = createClientRouterFilter(
+      ['/target'],
+      [{ source: '/promo/', destination: '/target', permanent: false }],
+      0.01
+    )
+
+    const staticFilter = inflateFilter(filters.staticFilter)
+
+    expect(staticFilter.contains('/promo')).toBe(true)
+    expect(staticFilter.contains('/promo/')).toBe(false)
+  })
 })
