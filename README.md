@@ -22,6 +22,13 @@ The repository also includes supporting materials related to our project work, s
 
 Every results are included in the final report with the output please check `./final_report/Final_Report.df`
 
+### Project Folders
+Some materials are organized by project dimension, including folders such as:
+
+- `dimension1/`
+- `/dimension2/`
+- `bench/dimension3-benchmark-app/`
+
 ## Overview
 
 This project evaluates aspects of software quality in the Next.js codebase through multiple dimensions of analysis. The work includes testing-related evaluation, mutation and coverage-oriented analysis, and benchmarking of selected behaviors.
