@@ -5,7 +5,7 @@ This repository contains the final project report and supporting materials for o
 ## Contents
 
 ### Final Report
-- `Final_Report.pdf`  
+- `final_report/Final_Report.pdf`  
   The final written report for the project.
 
 ### Supporting Materials
