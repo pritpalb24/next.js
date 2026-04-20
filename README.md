@@ -18,21 +18,23 @@ The repository also includes supporting materials related to our project work, s
 - benchmarking scripts and results
 - configuration files used during analysis
 - other repository materials relevant to the final report
-- patch or diff files where applicable
+- patch or diff files, where applicable
 
-Every results are included in the final report with the output please check `./final_report/Final_Report.df`
+Most results and outputs are also documented in the final report. Please refer to `./final_report/Final_Report.pdf`.
 
-### Project Folders
+## Project Folders
 Some materials are organized by project dimension, including folders such as:
 
 - `dimension1/`
-- `/dimension2/`
+- `dimension2/`
 - `bench/dimension3-benchmark-app/`
 
 ## Overview
-
 This project evaluates aspects of software quality in the Next.js codebase through multiple dimensions of analysis. The work includes testing-related evaluation, mutation and coverage-oriented analysis, and benchmarking of selected behaviors.
 
-## Note to the Marker
+## Reproducing Selected Results
+The following commands were used for selected testing and coverage-related artifacts included in this project.
 
-This archive is intended to include both the final project report and the technical materials supporting the work described in the report. The supporting materials primarily consist of generated results, reports, benchmark artifacts, configuration files, and other analysis-related materials included in this repository.
+### Run selected unit tests
+```bash
+pnpm testonly -- --runTestsByPath test/unit/server/image-optimizer.test.ts test/unit/lib/create-client-router-filter.test.ts
