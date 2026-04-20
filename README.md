@@ -25,8 +25,14 @@ Every results are included in the final report with the output please check `./f
 ### Project Folders
 Some materials are organized by project dimension, including folders such as:
 
-- `dimension1/`
-- `/dimension2/`
+
+- `dimension 1/` 
+- (Dimension 2 white-box testing artifacts)
+  - `packages/next/src/lib/create-client-router-filter.test.ts`
+  - `packages/next/src/server/image-optimizer.test.ts`
+  - `test/c8-coverage/`
+  - `test/c8-coverage-current/`
+  - `test/c8-coverage-phase-one/`
 - `bench/dimension3-benchmark-app/`
 
 ## Overview
